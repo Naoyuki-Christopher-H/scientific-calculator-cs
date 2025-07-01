@@ -2,29 +2,35 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 
 namespace scientific_calculator_cs
 {
     public partial class MainWindow : Window
     {
-        private string currentInput = "0";
-        private string previousInput = "";
-        private char currentOperator = '\0';
-        private bool resetInput = false;
-        private bool degreeMode = false; // Start in Radian mode (like Apple calculator)
-        private bool secondFunction = false;
+        // Calculator state variables
+        private string currentInput = "0";       // Current number being entered
+        private string previousInput = "";      // Previous number in memory
+        private char currentOperator = '\0';     // Current operation (+, -, ×, ÷, etc.)
+        private bool resetInput = false;        // Flag to reset input on next entry
+        private bool degreeMode = false;        // false=Radians, true=Degrees
+        private bool secondFunction = false;     // Whether 2nd functions are active
 
         public MainWindow()
         {
             InitializeComponent();
-            UpdateDisplay();
+            UpdateDisplay(); // Initialize display
         }
 
+        #region Button Handlers
+
+        // Handles number button clicks (0-9 and decimal)
         private void NumberButton_Click(object sender, RoutedEventArgs e)
         {
             Button button = (Button)sender;
             string number = button.Content.ToString();
 
+            // Reset input if needed or if current display is "0"
             if (resetInput || currentInput == "0")
             {
                 currentInput = number;
@@ -32,7 +38,8 @@ namespace scientific_calculator_cs
             }
             else
             {
-                if (currentInput.Length < 15) // Limit input length
+                // Limit input length to prevent overflow
+                if (currentInput.Length < 15)
                 {
                     currentInput += number;
                 }
@@ -41,6 +48,7 @@ namespace scientific_calculator_cs
             UpdateDisplay();
         }
 
+        // Handles basic operation buttons (C, ±, =, etc.)
         private void Button_Click(object sender, RoutedEventArgs e)
         {
             Button button = (Button)sender;
@@ -54,17 +62,11 @@ namespace scientific_calculator_cs
                     currentOperator = '\0';
                     break;
 
-                case "±": // Plus/minus
+                case "±": // Toggle positive/negative
                     if (currentInput != "0")
                     {
-                        if (currentInput.StartsWith("-"))
-                        {
-                            currentInput = currentInput.Substring(1);
-                        }
-                        else
-                        {
-                            currentInput = "-" + currentInput;
-                        }
+                        currentInput = currentInput.StartsWith("-") ?
+                            currentInput.Substring(1) : "-" + currentInput;
                     }
                     break;
 
@@ -77,16 +79,18 @@ namespace scientific_calculator_cs
                 case "-":
                 case "×":
                 case "÷":
+                    // If there's a pending operation, calculate it first
                     if (currentOperator != '\0')
                     {
                         Calculate();
                     }
+                    // Store current input and operator
                     previousInput = currentInput;
                     currentOperator = operation[0];
                     resetInput = true;
                     break;
 
-                case "=":
+                case "=": // Perform calculation
                     Calculate();
                     currentOperator = '\0';
                     break;
@@ -95,6 +99,7 @@ namespace scientific_calculator_cs
             UpdateDisplay();
         }
 
+        // Handles scientific function buttons (sin, cos, log, etc.)
         private void ScientificButton_Click(object sender, RoutedEventArgs e)
         {
             Button button = (Button)sender;
@@ -105,7 +110,7 @@ namespace scientific_calculator_cs
                 double inputValue = double.Parse(currentInput);
                 double result = 0;
 
-                // Handle second functions
+                // Handle second functions (inverse operations)
                 if (secondFunction)
                 {
                     switch (function)
@@ -123,6 +128,7 @@ namespace scientific_calculator_cs
                     }
                 }
 
+                // Perform the appropriate calculation
                 switch (function)
                 {
                     case "sin":
@@ -179,18 +185,12 @@ namespace scientific_calculator_cs
                     case "x!":
                         result = Factorial((int)inputValue);
                         break;
-                    case "nPr":
-                        // Permutations implementation would go here
-                        break;
                     case "mod":
                         previousInput = currentInput;
                         currentOperator = '%';
                         resetInput = true;
                         UpdateDisplay();
                         return;
-                    case "nCr":
-                        // Combinations implementation would go here
-                        break;
                     case "EE":
                         previousInput = currentInput;
                         currentOperator = 'E';
@@ -209,22 +209,24 @@ namespace scientific_calculator_cs
             }
         }
 
+        // Toggles between Radians and Degrees mode
         private void RadDegButton_Click(object sender, RoutedEventArgs e)
         {
             degreeMode = !degreeMode;
             btnRadDeg.Content = degreeMode ? "Deg" : "Rad";
         }
 
+        // Toggles secondary functions
         private void SecondButton_Click(object sender, RoutedEventArgs e)
         {
             secondFunction = !secondFunction;
 
-            // Toggle button colors
+            // Change button appearance when in 2nd function mode
             btnSecond.Background = secondFunction ?
                 (Brush)FindResource("OrangeButton") :
                 (Brush)FindResource("LightGrayButton");
 
-            // Update function buttons
+            // Update all function button labels
             btnSin.Content = secondFunction ? "sin⁻¹" : "sin";
             btnCos.Content = secondFunction ? "cos⁻¹" : "cos";
             btnTan.Content = secondFunction ? "tan⁻¹" : "tan";
@@ -237,6 +239,11 @@ namespace scientific_calculator_cs
             btnMod.Content = secondFunction ? "nCr" : "mod";
         }
 
+        #endregion
+
+        #region Calculation Methods
+
+        // Performs the current calculation
         private void Calculate()
         {
             if (string.IsNullOrEmpty(previousInput) || currentOperator == '\0') return;
@@ -264,13 +271,13 @@ namespace scientific_calculator_cs
                     case '^':
                         result = Math.Pow(num1, num2);
                         break;
-                    case '√': // y√x operation
+                    case '√': // y√x operation (x^(1/y))
                         result = Math.Pow(num2, 1.0 / num1);
                         break;
                     case '%':
                         result = num1 % num2;
                         break;
-                    case 'E':
+                    case 'E': // Scientific notation
                         result = num1 * Math.Pow(10, num2);
                         break;
                 }
@@ -287,10 +294,11 @@ namespace scientific_calculator_cs
             }
         }
 
+        // Calculates factorial (n!)
         private double Factorial(int n)
         {
-            if (n < 0) return double.NaN;
-            if (n == 0) return 1;
+            if (n < 0) return double.NaN; // Error for negative numbers
+            if (n == 0) return 1;         // 0! is 1
 
             double result = 1;
             for (int i = 1; i <= n; i++)
@@ -300,31 +308,46 @@ namespace scientific_calculator_cs
             return result;
         }
 
+        #endregion
+
+        #region UI Update Methods
+
+        // Updates the display with current values
         private void UpdateDisplay()
         {
             txtDisplay.Text = currentInput;
+            // Show previous input and current operator in history
             txtHistory.Text = previousInput + " " + (currentOperator != '\0' ? currentOperator.ToString() : "");
         }
 
-        // Window Control Methods
+        #endregion
+
+        #region Window Control Methods
+
+        // Allows dragging the window by title bar
         private void Grid_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             DragMove();
         }
 
+        // Minimize window
         private void btnMinimize_Click(object sender, RoutedEventArgs e)
         {
             WindowState = WindowState.Minimized;
         }
 
+        // Toggle maximize/restore
         private void btnMaximize_Click(object sender, RoutedEventArgs e)
         {
             WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
         }
 
+        // Close window
         private void btnClose_Click(object sender, RoutedEventArgs e)
         {
             Close();
         }
+
+        #endregion
     }
 }
