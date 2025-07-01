@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace scientific_calculator_cs
 {
@@ -10,7 +11,8 @@ namespace scientific_calculator_cs
         private string previousInput = "";
         private char currentOperator = '\0';
         private bool resetInput = false;
-        private bool degreeMode = true; // true for degrees, false for radians
+        private bool degreeMode = false; // Start in Radian mode (like Apple calculator)
+        private bool secondFunction = false;
 
         public MainWindow()
         {
@@ -30,7 +32,10 @@ namespace scientific_calculator_cs
             }
             else
             {
-                currentInput += number;
+                if (currentInput.Length < 15) // Limit input length
+                {
+                    currentInput += number;
+                }
             }
 
             UpdateDisplay();
@@ -49,21 +54,6 @@ namespace scientific_calculator_cs
                     currentOperator = '\0';
                     break;
 
-                case "CE": // Clear entry
-                    currentInput = "0";
-                    break;
-
-                case "⌫": // Backspace
-                    if (currentInput.Length > 1)
-                    {
-                        currentInput = currentInput.Substring(0, currentInput.Length - 1);
-                    }
-                    else
-                    {
-                        currentInput = "0";
-                    }
-                    break;
-
                 case "±": // Plus/minus
                     if (currentInput != "0")
                     {
@@ -75,18 +65,6 @@ namespace scientific_calculator_cs
                         {
                             currentInput = "-" + currentInput;
                         }
-                    }
-                    break;
-
-                case "%": // Percentage
-                    try
-                    {
-                        double value = double.Parse(currentInput) / 100;
-                        currentInput = value.ToString();
-                    }
-                    catch
-                    {
-                        currentInput = "Error";
                     }
                     break;
 
@@ -127,58 +105,92 @@ namespace scientific_calculator_cs
                 double inputValue = double.Parse(currentInput);
                 double result = 0;
 
+                // Handle second functions
+                if (secondFunction)
+                {
+                    switch (function)
+                    {
+                        case "sin": function = "sin⁻¹"; break;
+                        case "cos": function = "cos⁻¹"; break;
+                        case "tan": function = "tan⁻¹"; break;
+                        case "log": function = "10^x"; break;
+                        case "ln": function = "e^x"; break;
+                        case "e^x": function = "ln"; break;
+                        case "√": function = "x²"; break;
+                        case "x^y": function = "y√x"; break;
+                        case "x!": function = "nPr"; break;
+                        case "mod": function = "nCr"; break;
+                    }
+                }
+
                 switch (function)
                 {
                     case "sin":
                         result = degreeMode ? Math.Sin(inputValue * Math.PI / 180) : Math.Sin(inputValue);
                         break;
-
+                    case "sin⁻¹":
+                        result = degreeMode ? Math.Asin(inputValue) * 180 / Math.PI : Math.Asin(inputValue);
+                        break;
                     case "cos":
                         result = degreeMode ? Math.Cos(inputValue * Math.PI / 180) : Math.Cos(inputValue);
                         break;
-
+                    case "cos⁻¹":
+                        result = degreeMode ? Math.Acos(inputValue) * 180 / Math.PI : Math.Acos(inputValue);
+                        break;
                     case "tan":
                         result = degreeMode ? Math.Tan(inputValue * Math.PI / 180) : Math.Tan(inputValue);
                         break;
-
+                    case "tan⁻¹":
+                        result = degreeMode ? Math.Atan(inputValue) * 180 / Math.PI : Math.Atan(inputValue);
+                        break;
                     case "π":
                         result = Math.PI;
                         break;
-
                     case "log":
                         result = Math.Log10(inputValue);
                         break;
-
+                    case "10^x":
+                        result = Math.Pow(10, inputValue);
+                        break;
                     case "ln":
                         result = Math.Log(inputValue);
                         break;
-
                     case "e^x":
                         result = Math.Exp(inputValue);
                         break;
-
                     case "√":
                         result = Math.Sqrt(inputValue);
                         break;
-
+                    case "x²":
+                        result = Math.Pow(inputValue, 2);
+                        break;
                     case "x^y":
                         previousInput = currentInput;
                         currentOperator = '^';
                         resetInput = true;
                         UpdateDisplay();
                         return;
-
-                    case "n!":
+                    case "y√x":
+                        previousInput = currentInput;
+                        currentOperator = '√';
+                        resetInput = true;
+                        UpdateDisplay();
+                        return;
+                    case "x!":
                         result = Factorial((int)inputValue);
                         break;
-
+                    case "nPr":
+                        // Permutations implementation would go here
+                        break;
                     case "mod":
                         previousInput = currentInput;
                         currentOperator = '%';
                         resetInput = true;
                         UpdateDisplay();
                         return;
-
+                    case "nCr":
+                        // Combinations implementation would go here
+                        break;
                     case "EE":
                         previousInput = currentInput;
                         currentOperator = 'E';
@@ -195,6 +207,34 @@ namespace scientific_calculator_cs
                 currentInput = "Error";
                 UpdateDisplay();
             }
+        }
+
+        private void RadDegButton_Click(object sender, RoutedEventArgs e)
+        {
+            degreeMode = !degreeMode;
+            btnRadDeg.Content = degreeMode ? "Deg" : "Rad";
+        }
+
+        private void SecondButton_Click(object sender, RoutedEventArgs e)
+        {
+            secondFunction = !secondFunction;
+
+            // Toggle button colors
+            btnSecond.Background = secondFunction ?
+                (Brush)FindResource("OrangeButton") :
+                (Brush)FindResource("LightGrayButton");
+
+            // Update function buttons
+            btnSin.Content = secondFunction ? "sin⁻¹" : "sin";
+            btnCos.Content = secondFunction ? "cos⁻¹" : "cos";
+            btnTan.Content = secondFunction ? "tan⁻¹" : "tan";
+            btnLog.Content = secondFunction ? "10^x" : "log";
+            btnLn.Content = secondFunction ? "e^x" : "ln";
+            btnExp.Content = secondFunction ? "ln" : "e^x";
+            btnSqrt.Content = secondFunction ? "x²" : "√";
+            btnPower.Content = secondFunction ? "y√x" : "x^y";
+            btnFactorial.Content = secondFunction ? "nPr" : "x!";
+            btnMod.Content = secondFunction ? "nCr" : "mod";
         }
 
         private void Calculate()
@@ -223,6 +263,9 @@ namespace scientific_calculator_cs
                         break;
                     case '^':
                         result = Math.Pow(num1, num2);
+                        break;
+                    case '√': // y√x operation
+                        result = Math.Pow(num2, 1.0 / num1);
                         break;
                     case '%':
                         result = num1 % num2;
@@ -261,6 +304,27 @@ namespace scientific_calculator_cs
         {
             txtDisplay.Text = currentInput;
             txtHistory.Text = previousInput + " " + (currentOperator != '\0' ? currentOperator.ToString() : "");
+        }
+
+        // Window Control Methods
+        private void Grid_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            DragMove();
+        }
+
+        private void btnMinimize_Click(object sender, RoutedEventArgs e)
+        {
+            WindowState = WindowState.Minimized;
+        }
+
+        private void btnMaximize_Click(object sender, RoutedEventArgs e)
+        {
+            WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+        }
+
+        private void btnClose_Click(object sender, RoutedEventArgs e)
+        {
+            Close();
         }
     }
 }
