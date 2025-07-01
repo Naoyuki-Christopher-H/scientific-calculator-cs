@@ -9,278 +9,227 @@ namespace scientific_calculator_cs
     public partial class MainWindow : Window
     {
         // Calculator state variables
-        private string currentInput = "0";       // Current number being entered
-        private string previousInput = "";      // Previous number in memory
-        private char currentOperator = '\0';     // Current operation (+, -, ×, ÷, etc.)
-        private bool resetInput = false;        // Flag to reset input on next entry
-        private bool degreeMode = false;        // false=Radians, true=Degrees
-        private bool secondFunction = false;     // Whether 2nd functions are active
+        private string currentInput = "0";
+        private string previousInput = "";
+        private char currentOperator = '\0';
+        private bool resetInput = false;
+        private bool degreeMode = false; // false=Radians, true=Degrees
+        private bool secondFunction = false;
 
         public MainWindow()
         {
             InitializeComponent();
-            UpdateDisplay(); // Initialize display
+            UpdateDisplay();
         }
 
-        #region Button Handlers
-
-        // Handles number button clicks (0-9 and decimal)
+        // Number button click handler (0-9 and decimal)
         private void NumberButton_Click(object sender, RoutedEventArgs e)
         {
-            Button button = (Button)sender;
-            string number = button.Content.ToString();
+            if (sender is Button button)
+            {
+                string number = button.Content.ToString();
 
-            // Reset input if needed or if current display is "0"
-            if (resetInput || currentInput == "0")
-            {
-                currentInput = number;
-                resetInput = false;
-            }
-            else
-            {
-                // Limit input length to prevent overflow
-                if (currentInput.Length < 15)
+                if (resetInput || currentInput == "0")
+                {
+                    currentInput = number;
+                    resetInput = false;
+                }
+                else if (currentInput.Length < 15) // Prevent overflow
                 {
                     currentInput += number;
                 }
-            }
 
-            UpdateDisplay();
+                UpdateDisplay();
+            }
         }
 
-        // Handles basic operation buttons (C, ±, =, etc.)
-        private void Button_Click(object sender, RoutedEventArgs e)
+        // Basic operation button handler (C, ±, =, etc.)
+        private void OperationButton_Click(object sender, RoutedEventArgs e)
         {
-            Button button = (Button)sender;
-            string operation = button.Content.ToString();
-
-            switch (operation)
+            if (sender is Button button)
             {
-                case "C": // Clear all
-                    currentInput = "0";
-                    previousInput = "";
-                    currentOperator = '\0';
-                    break;
+                string operation = button.Content.ToString();
 
-                case "±": // Toggle positive/negative
-                    if (currentInput != "0")
-                    {
-                        currentInput = currentInput.StartsWith("-") ?
-                            currentInput.Substring(1) : "-" + currentInput;
-                    }
-                    break;
+                switch (operation)
+                {
+                    case "C": // Clear all
+                        currentInput = "0";
+                        previousInput = "";
+                        currentOperator = '\0';
+                        break;
 
-                case "(": // Open parenthesis
-                case ")": // Close parenthesis
-                    currentInput += operation;
-                    break;
+                    case "±": // Toggle sign
+                        if (currentInput != "0")
+                        {
+                            currentInput = currentInput.StartsWith("-") ?
+                                currentInput.Substring(1) : "-" + currentInput;
+                        }
+                        break;
 
-                case "+":
-                case "-":
-                case "×":
-                case "÷":
-                    // If there's a pending operation, calculate it first
-                    if (currentOperator != '\0')
-                    {
+                    case "(":
+                    case ")":
+                        currentInput += operation;
+                        break;
+
+                    case "+":
+                    case "-":
+                    case "×":
+                    case "÷":
+                        if (currentOperator != '\0')
+                        {
+                            Calculate();
+                        }
+                        previousInput = currentInput;
+                        currentOperator = operation[0];
+                        resetInput = true;
+                        break;
+
+                    case "=":
                         Calculate();
-                    }
-                    // Store current input and operator
-                    previousInput = currentInput;
-                    currentOperator = operation[0];
-                    resetInput = true;
-                    break;
+                        currentOperator = '\0';
+                        break;
+                }
 
-                case "=": // Perform calculation
-                    Calculate();
-                    currentOperator = '\0';
-                    break;
+                UpdateDisplay();
             }
-
-            UpdateDisplay();
         }
 
-        // Handles scientific function buttons (sin, cos, log, etc.)
+        // Scientific function button handler
         private void ScientificButton_Click(object sender, RoutedEventArgs e)
         {
-            Button button = (Button)sender;
-            string function = button.Content.ToString();
-
-            try
+            if (sender is Button button)
             {
-                double inputValue = double.Parse(currentInput);
-                double result = 0;
+                string function = button.Content.ToString();
 
-                // Handle second functions (inverse operations)
-                if (secondFunction)
+                try
                 {
-                    switch (function)
+                    double inputValue = double.Parse(currentInput);
+                    double result = 0;
+
+                    // Handle second functions
+                    if (secondFunction)
                     {
-                        case "sin": function = "sin⁻¹"; break;
-                        case "cos": function = "cos⁻¹"; break;
-                        case "tan": function = "tan⁻¹"; break;
-                        case "log": function = "10^x"; break;
-                        case "ln": function = "e^x"; break;
-                        case "e^x": function = "ln"; break;
-                        case "√": function = "x²"; break;
-                        case "x^y": function = "y√x"; break;
-                        case "x!": function = "nPr"; break;
-                        case "mod": function = "nCr"; break;
+                        function = function switch
+                        {
+                            "sin" => "sin⁻¹",
+                            "cos" => "cos⁻¹",
+                            "tan" => "tan⁻¹",
+                            "log" => "10^x",
+                            "ln" => "e^x",
+                            "e^x" => "ln",
+                            "√" => "x²",
+                            "x^y" => "y√x",
+                            "x!" => "nPr",
+                            "mod" => "nCr",
+                            _ => function
+                        };
+                    }
+
+                    // Perform calculation
+                    result = function switch
+                    {
+                        "sin" => degreeMode ? Math.Sin(inputValue * Math.PI / 180) : Math.Sin(inputValue),
+                        "sin⁻¹" => degreeMode ? Math.Asin(inputValue) * 180 / Math.PI : Math.Asin(inputValue),
+                        "cos" => degreeMode ? Math.Cos(inputValue * Math.PI / 180) : Math.Cos(inputValue),
+                        "cos⁻¹" => degreeMode ? Math.Acos(inputValue) * 180 / Math.PI : Math.Acos(inputValue),
+                        "tan" => degreeMode ? Math.Tan(inputValue * Math.PI / 180) : Math.Tan(inputValue),
+                        "tan⁻¹" => degreeMode ? Math.Atan(inputValue) * 180 / Math.PI : Math.Atan(inputValue),
+                        "π" => Math.PI,
+                        "log" => Math.Log10(inputValue),
+                        "10^x" => Math.Pow(10, inputValue),
+                        "ln" => Math.Log(inputValue),
+                        "e^x" => Math.Exp(inputValue),
+                        "√" => Math.Sqrt(inputValue),
+                        "x²" => Math.Pow(inputValue, 2),
+                        "x^y" => HandleBinaryOperation('^', inputValue),
+                        "y√x" => HandleBinaryOperation('√', inputValue),
+                        "x!" => Factorial((int)inputValue),
+                        "mod" => HandleBinaryOperation('%', inputValue),
+                        "EE" => HandleBinaryOperation('E', inputValue),
+                        _ => inputValue
+                    };
+
+                    if (result != double.NaN) // Only update if not a binary operation
+                    {
+                        currentInput = result.ToString();
+                        UpdateDisplay();
                     }
                 }
-
-                // Perform the appropriate calculation
-                switch (function)
+                catch
                 {
-                    case "sin":
-                        result = degreeMode ? Math.Sin(inputValue * Math.PI / 180) : Math.Sin(inputValue);
-                        break;
-                    case "sin⁻¹":
-                        result = degreeMode ? Math.Asin(inputValue) * 180 / Math.PI : Math.Asin(inputValue);
-                        break;
-                    case "cos":
-                        result = degreeMode ? Math.Cos(inputValue * Math.PI / 180) : Math.Cos(inputValue);
-                        break;
-                    case "cos⁻¹":
-                        result = degreeMode ? Math.Acos(inputValue) * 180 / Math.PI : Math.Acos(inputValue);
-                        break;
-                    case "tan":
-                        result = degreeMode ? Math.Tan(inputValue * Math.PI / 180) : Math.Tan(inputValue);
-                        break;
-                    case "tan⁻¹":
-                        result = degreeMode ? Math.Atan(inputValue) * 180 / Math.PI : Math.Atan(inputValue);
-                        break;
-                    case "π":
-                        result = Math.PI;
-                        break;
-                    case "log":
-                        result = Math.Log10(inputValue);
-                        break;
-                    case "10^x":
-                        result = Math.Pow(10, inputValue);
-                        break;
-                    case "ln":
-                        result = Math.Log(inputValue);
-                        break;
-                    case "e^x":
-                        result = Math.Exp(inputValue);
-                        break;
-                    case "√":
-                        result = Math.Sqrt(inputValue);
-                        break;
-                    case "x²":
-                        result = Math.Pow(inputValue, 2);
-                        break;
-                    case "x^y":
-                        previousInput = currentInput;
-                        currentOperator = '^';
-                        resetInput = true;
-                        UpdateDisplay();
-                        return;
-                    case "y√x":
-                        previousInput = currentInput;
-                        currentOperator = '√';
-                        resetInput = true;
-                        UpdateDisplay();
-                        return;
-                    case "x!":
-                        result = Factorial((int)inputValue);
-                        break;
-                    case "mod":
-                        previousInput = currentInput;
-                        currentOperator = '%';
-                        resetInput = true;
-                        UpdateDisplay();
-                        return;
-                    case "EE":
-                        previousInput = currentInput;
-                        currentOperator = 'E';
-                        resetInput = true;
-                        UpdateDisplay();
-                        return;
+                    currentInput = "Error";
+                    UpdateDisplay();
                 }
-
-                currentInput = result.ToString();
-                UpdateDisplay();
-            }
-            catch
-            {
-                currentInput = "Error";
-                UpdateDisplay();
             }
         }
 
-        // Toggles between Radians and Degrees mode
-        private void RadDegButton_Click(object sender, RoutedEventArgs e)
+        // Toggle between Radians and Degrees
+        private void ModeButton_Click(object sender, RoutedEventArgs e)
         {
-            degreeMode = !degreeMode;
-            btnRadDeg.Content = degreeMode ? "Deg" : "Rad";
+            if (sender is Button button)
+            {
+                degreeMode = !degreeMode;
+                button.Content = degreeMode ? "Deg" : "Rad";
+            }
         }
 
-        // Toggles secondary functions
+        // Toggle second functions
         private void SecondButton_Click(object sender, RoutedEventArgs e)
         {
-            secondFunction = !secondFunction;
+            if (sender is Button button)
+            {
+                secondFunction = !secondFunction;
 
-            // Change button appearance when in 2nd function mode
-            btnSecond.Background = secondFunction ?
-                (Brush)FindResource("OrangeButton") :
-                (Brush)FindResource("LightGrayButton");
+                // Update button appearance
+                button.Background = secondFunction ?
+                    (Brush)FindResource("OrangeBrush") :
+                    (Brush)FindResource("LightGrayBrush");
 
-            // Update all function button labels
-            btnSin.Content = secondFunction ? "sin⁻¹" : "sin";
-            btnCos.Content = secondFunction ? "cos⁻¹" : "cos";
-            btnTan.Content = secondFunction ? "tan⁻¹" : "tan";
-            btnLog.Content = secondFunction ? "10^x" : "log";
-            btnLn.Content = secondFunction ? "e^x" : "ln";
-            btnExp.Content = secondFunction ? "ln" : "e^x";
-            btnSqrt.Content = secondFunction ? "x²" : "√";
-            btnPower.Content = secondFunction ? "y√x" : "x^y";
-            btnFactorial.Content = secondFunction ? "nPr" : "x!";
-            btnMod.Content = secondFunction ? "nCr" : "mod";
+                // Update function button labels
+                btnSin.Content = secondFunction ? "sin⁻¹" : "sin";
+                btnCos.Content = secondFunction ? "cos⁻¹" : "cos";
+                btnTan.Content = secondFunction ? "tan⁻¹" : "tan";
+                btnLog.Content = secondFunction ? "10^x" : "log";
+                btnLn.Content = secondFunction ? "e^x" : "ln";
+                btnExp.Content = secondFunction ? "ln" : "e^x";
+                btnSqrt.Content = secondFunction ? "x²" : "√";
+                btnPower.Content = secondFunction ? "y√x" : "x^y";
+                btnFactorial.Content = secondFunction ? "nPr" : "x!";
+                btnMod.Content = secondFunction ? "nCr" : "mod";
+            }
         }
 
-        #endregion
+        // Handle binary operations (needs two operands)
+        private double HandleBinaryOperation(char op, double inputValue)
+        {
+            previousInput = currentInput;
+            currentOperator = op;
+            resetInput = true;
+            UpdateDisplay();
+            return double.NaN; // Special value to indicate binary operation
+        }
 
-        #region Calculation Methods
-
-        // Performs the current calculation
+        // Perform calculation
         private void Calculate()
         {
-            if (string.IsNullOrEmpty(previousInput) || currentOperator == '\0') return;
+            if (string.IsNullOrEmpty(previousInput)) return;
 
             try
             {
                 double num1 = double.Parse(previousInput);
                 double num2 = double.Parse(currentInput);
-                double result = 0;
-
-                switch (currentOperator)
+                double result = currentOperator switch
                 {
-                    case '+':
-                        result = num1 + num2;
-                        break;
-                    case '-':
-                        result = num1 - num2;
-                        break;
-                    case '×':
-                        result = num1 * num2;
-                        break;
-                    case '÷':
-                        result = num1 / num2;
-                        break;
-                    case '^':
-                        result = Math.Pow(num1, num2);
-                        break;
-                    case '√': // y√x operation (x^(1/y))
-                        result = Math.Pow(num2, 1.0 / num1);
-                        break;
-                    case '%':
-                        result = num1 % num2;
-                        break;
-                    case 'E': // Scientific notation
-                        result = num1 * Math.Pow(10, num2);
-                        break;
-                }
+                    '+' => num1 + num2,
+                    '-' => num1 - num2,
+                    '×' => num1 * num2,
+                    '÷' => num1 / num2,
+                    '^' => Math.Pow(num1, num2),
+                    '√' => Math.Pow(num2, 1.0 / num1),
+                    '%' => num1 % num2,
+                    'E' => num1 * Math.Pow(10, num2),
+                    _ => num2
+                };
 
                 currentInput = result.ToString();
                 previousInput = "";
@@ -294,11 +243,11 @@ namespace scientific_calculator_cs
             }
         }
 
-        // Calculates factorial (n!)
+        // Calculate factorial
         private double Factorial(int n)
         {
-            if (n < 0) return double.NaN; // Error for negative numbers
-            if (n == 0) return 1;         // 0! is 1
+            if (n < 0) return double.NaN;
+            if (n == 0) return 1;
 
             double result = 1;
             for (int i = 1; i <= n; i++)
@@ -308,42 +257,34 @@ namespace scientific_calculator_cs
             return result;
         }
 
-        #endregion
-
-        #region UI Update Methods
-
-        // Updates the display with current values
+        // Update the display
         private void UpdateDisplay()
         {
             txtDisplay.Text = currentInput;
-            // Show previous input and current operator in history
-            txtHistory.Text = previousInput + " " + (currentOperator != '\0' ? currentOperator.ToString() : "");
+            txtHistory.Text = previousInput + (currentOperator != '\0' ? " " + currentOperator : "");
         }
-
-        #endregion
 
         #region Window Control Methods
 
-        // Allows dragging the window by title bar
-        private void Grid_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            DragMove();
+            if (e.ChangedButton == MouseButton.Left)
+            {
+                DragMove();
+            }
         }
 
-        // Minimize window
-        private void btnMinimize_Click(object sender, RoutedEventArgs e)
+        private void MinimizeButton_Click(object sender, RoutedEventArgs e)
         {
             WindowState = WindowState.Minimized;
         }
 
-        // Toggle maximize/restore
-        private void btnMaximize_Click(object sender, RoutedEventArgs e)
+        private void MaximizeButton_Click(object sender, RoutedEventArgs e)
         {
             WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
         }
 
-        // Close window
-        private void btnClose_Click(object sender, RoutedEventArgs e)
+        private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
             Close();
         }
