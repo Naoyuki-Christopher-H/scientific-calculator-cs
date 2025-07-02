@@ -1,6 +1,6 @@
 # Scientific Calculator
 
-A feature-rich scientific calculator application built with WPF and C# 7.0, designed with an Apple-inspired UI.
+A feature-rich scientific calculator application built with WPF and C# 7.0.
 
 ## Features
 
