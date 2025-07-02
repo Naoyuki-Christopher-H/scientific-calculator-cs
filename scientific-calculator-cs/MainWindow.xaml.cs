@@ -33,7 +33,11 @@ namespace scientific_calculator_cs
             {
                 // Try to load custom icon from resources
                 var iconUri = new Uri("pack://application:,,,/icon/calculator.png", UriKind.RelativeOrAbsolute);
-                this.Icon = new BitmapImage(iconUri);
+                var bitmap = new BitmapImage(iconUri);
+                if (bitmap != null)
+                {
+                    this.Icon = bitmap;
+                }
             }
             catch
             {
@@ -42,10 +46,15 @@ namespace scientific_calculator_cs
                 var defaultIcon = GetDefaultIcon();
                 if (defaultIcon != IntPtr.Zero)
                 {
-                    this.Icon = Imaging.CreateBitmapSourceFromHIcon(
+                    var bitmapSource = Imaging.CreateBitmapSourceFromHIcon(
                         defaultIcon,
                         Int32Rect.Empty,
                         BitmapSizeOptions.FromEmptyOptions());
+
+                    if (bitmapSource != null)
+                    {
+                        this.Icon = bitmapSource;
+                    }
                 }
             }
         }
@@ -72,21 +81,21 @@ namespace scientific_calculator_cs
         private void NumberButton_Click(object sender, RoutedEventArgs e)
         {
             var button = sender as Button;
-            if (button?.Content == null) return;
+            if (button == null) return;
 
-            string number = button.Content.ToString();
-            if (number == null) return;
+            var content = button.Content as string;
+            if (content == null) return;
 
             // Handle reset condition or initial zero state
             if (resetInput || currentInput == "0")
             {
-                currentInput = number;
+                currentInput = content;
                 resetInput = false;
             }
             // Prevent display overflow
             else if (currentInput.Length < 15)
             {
-                currentInput += number;
+                currentInput += content;
             }
 
             UpdateDisplay();
@@ -96,9 +105,9 @@ namespace scientific_calculator_cs
         private void OperationButton_Click(object sender, RoutedEventArgs e)
         {
             var button = sender as Button;
-            if (button?.Content == null) return;
+            if (button == null) return;
 
-            string operation = button.Content.ToString();
+            var operation = button.Content as string;
             if (operation == null) return;
 
             switch (operation)
@@ -148,14 +157,21 @@ namespace scientific_calculator_cs
         private void ScientificButton_Click(object sender, RoutedEventArgs e)
         {
             var button = sender as Button;
-            if (button?.Content == null) return;
+            if (button == null) return;
 
-            string function = button.Content.ToString();
+            var function = button.Content as string;
             if (function == null) return;
 
             try
             {
-                double inputValue = double.Parse(currentInput);
+                double inputValue;
+                if (!double.TryParse(currentInput, out inputValue))
+                {
+                    currentInput = "Error";
+                    UpdateDisplay();
+                    return;
+                }
+
                 double result = 0;
 
                 // Handle second functions (inverse operations)
@@ -255,16 +271,16 @@ namespace scientific_calculator_cs
 
         private void UpdateSecondFunctionButtons()
         {
-            btnSin.Content = secondFunction ? "sin⁻¹" : "sin";
-            btnCos.Content = secondFunction ? "cos⁻¹" : "cos";
-            btnTan.Content = secondFunction ? "tan⁻¹" : "tan";
-            btnLog.Content = secondFunction ? "10^x" : "log";
-            btnLn.Content = secondFunction ? "e^x" : "ln";
-            btnExp.Content = secondFunction ? "ln" : "e^x";
-            btnSqrt.Content = secondFunction ? "x²" : "√";
-            btnPower.Content = secondFunction ? "y√x" : "x^y";
-            btnFactorial.Content = secondFunction ? "nPr" : "x!";
-            btnMod.Content = secondFunction ? "nCr" : "mod";
+            if (btnSin != null) btnSin.Content = secondFunction ? "sin⁻¹" : "sin";
+            if (btnCos != null) btnCos.Content = secondFunction ? "cos⁻¹" : "cos";
+            if (btnTan != null) btnTan.Content = secondFunction ? "tan⁻¹" : "tan";
+            if (btnLog != null) btnLog.Content = secondFunction ? "10^x" : "log";
+            if (btnLn != null) btnLn.Content = secondFunction ? "e^x" : "ln";
+            if (btnExp != null) btnExp.Content = secondFunction ? "ln" : "e^x";
+            if (btnSqrt != null) btnSqrt.Content = secondFunction ? "x²" : "√";
+            if (btnPower != null) btnPower.Content = secondFunction ? "y√x" : "x^y";
+            if (btnFactorial != null) btnFactorial.Content = secondFunction ? "nPr" : "x!";
+            if (btnMod != null) btnMod.Content = secondFunction ? "nCr" : "mod";
         }
 
         // Handle binary operations (needs two operands)
@@ -284,8 +300,14 @@ namespace scientific_calculator_cs
 
             try
             {
-                double num1 = double.Parse(previousInput);
-                double num2 = double.Parse(currentInput);
+                double num1, num2;
+                if (!double.TryParse(previousInput, out num1) || !double.TryParse(currentInput, out num2))
+                {
+                    currentInput = "Error";
+                    UpdateDisplay();
+                    return;
+                }
+
                 double result = 0;
 
                 // Perform the appropriate calculation based on operator
@@ -301,7 +323,7 @@ namespace scientific_calculator_cs
                         result = num1 * num2;
                         break;
                     case '÷':
-                        result = num1 / num2;
+                        result = num2 != 0 ? num1 / num2 : double.NaN;
                         break;
                     case '^':
                         result = Math.Pow(num1, num2);
@@ -320,9 +342,17 @@ namespace scientific_calculator_cs
                         break;
                 }
 
-                currentInput = result.ToString();
-                previousInput = "";
-                resetInput = true;
+                if (double.IsNaN(result))
+                {
+                    currentInput = "Error";
+                }
+                else
+                {
+                    currentInput = result.ToString();
+                    previousInput = "";
+                    resetInput = true;
+                }
+
                 UpdateDisplay();
             }
             catch
@@ -349,8 +379,15 @@ namespace scientific_calculator_cs
         // Update the display
         private void UpdateDisplay()
         {
-            txtDisplay.Text = currentInput;
-            txtHistory.Text = previousInput + (currentOperator != '\0' ? " " + currentOperator : "");
+            if (txtDisplay != null)
+            {
+                txtDisplay.Text = currentInput;
+            }
+
+            if (txtHistory != null)
+            {
+                txtHistory.Text = previousInput + (currentOperator != '\0' ? " " + currentOperator : "");
+            }
         }
 
         #region Window Control Methods
@@ -360,26 +397,26 @@ namespace scientific_calculator_cs
         {
             if (e.ChangedButton == MouseButton.Left)
             {
-                DragMove();
+                this.DragMove();
             }
         }
 
         // Minimize window
         private void MinimizeButton_Click(object sender, RoutedEventArgs e)
         {
-            WindowState = WindowState.Minimized;
+            this.WindowState = WindowState.Minimized;
         }
 
         // Toggle maximize/restore
         private void MaximizeButton_Click(object sender, RoutedEventArgs e)
         {
-            WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+            this.WindowState = this.WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
         }
 
         // Close application
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
-            Close();
+            this.Close();
         }
 
         #endregion
