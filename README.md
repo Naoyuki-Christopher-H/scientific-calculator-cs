@@ -27,7 +27,6 @@ This project serves as a comprehensive implementation of a scientific calculator
 4. Run the application (F5)
 
 **GitHub Username**: Naoyuki-Christopher-H
-**GitHub Repo**: https://github.com/Naoyuki-Christopher-H/scientific-calculator-cs.git
 
 ## Features Implemented
 - Developed a complete scientific calculator UI using WPF with proper styling and theming
