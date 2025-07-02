@@ -3,6 +3,10 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Media; // For system sounds
+using System.Windows.Media.Imaging; // For bitmap handling
+using System.Windows.Interop; // For icon conversion
+using System.Runtime.InteropServices; // For DllImport
 
 namespace scientific_calculator_cs
 {
@@ -20,6 +24,36 @@ namespace scientific_calculator_cs
         {
             InitializeComponent();
             UpdateDisplay();
+
+            // Play beep sound on startup
+            SystemSounds.Beep.Play();
+
+            // Set window icon with fallback
+            try
+            {
+                // Try to load custom icon from resources
+                this.Icon = new BitmapImage(new Uri("pack://application:,,,/icon/calculator.png"));
+            }
+            catch
+            {
+                // Fallback to default application icon
+                // Using Win32 API to get default icon for C# 7.0 compatibility
+                this.Icon = Imaging.CreateBitmapSourceFromHIcon(
+                    GetDefaultIcon(),
+                    Int32Rect.Empty,
+                    BitmapSizeOptions.FromEmptyOptions());
+            }
+        }
+
+        // Win32 API method to get default application icon
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        private static extern IntPtr LoadIcon(IntPtr hInstance, IntPtr iconName);
+
+        private static IntPtr GetDefaultIcon()
+        {
+            // IDI_APPLICATION is the default application icon
+            IntPtr IDI_APPLICATION = new IntPtr(32512);
+            return LoadIcon(IntPtr.Zero, IDI_APPLICATION);
         }
 
         // Number button click handler (0-9 and decimal)
@@ -29,12 +63,14 @@ namespace scientific_calculator_cs
             {
                 string number = button.Content.ToString();
 
+                // Handle reset condition or initial zero state
                 if (resetInput || currentInput == "0")
                 {
                     currentInput = number;
                     resetInput = false;
                 }
-                else if (currentInput.Length < 15) // Prevent overflow
+                // Prevent display overflow
+                else if (currentInput.Length < 15)
                 {
                     currentInput += number;
                 }
@@ -67,14 +103,14 @@ namespace scientific_calculator_cs
                         break;
 
                     case "(":
-                    case ")":
+                    case ")": // Parentheses handling
                         currentInput += operation;
                         break;
 
                     case "+":
                     case "-":
                     case "×":
-                    case "÷":
+                    case "÷": // Basic operations
                         if (currentOperator != '\0')
                         {
                             Calculate();
@@ -84,7 +120,7 @@ namespace scientific_calculator_cs
                         resetInput = true;
                         break;
 
-                    case "=":
+                    case "=": // Perform calculation
                         Calculate();
                         currentOperator = '\0';
                         break;
@@ -106,7 +142,7 @@ namespace scientific_calculator_cs
                     double inputValue = double.Parse(currentInput);
                     double result = 0;
 
-                    // Handle second functions
+                    // Handle second functions (inverse operations)
                     if (secondFunction)
                     {
                         function = function switch
@@ -125,7 +161,7 @@ namespace scientific_calculator_cs
                         };
                     }
 
-                    // Perform calculation
+                    // Perform the scientific calculation
                     result = function switch
                     {
                         "sin" => degreeMode ? Math.Sin(inputValue * Math.PI / 180) : Math.Sin(inputValue),
@@ -149,7 +185,7 @@ namespace scientific_calculator_cs
                         _ => inputValue
                     };
 
-                    if (result != double.NaN) // Only update if not a binary operation
+                    if (!double.IsNaN(result)) // Only update if not a binary operation
                     {
                         currentInput = result.ToString();
                         UpdateDisplay();
@@ -185,7 +221,7 @@ namespace scientific_calculator_cs
                     (Brush)FindResource("OrangeBrush") :
                     (Brush)FindResource("LightGrayBrush");
 
-                // Update function button labels
+                // Update all function button labels
                 btnSin.Content = secondFunction ? "sin⁻¹" : "sin";
                 btnCos.Content = secondFunction ? "cos⁻¹" : "cos";
                 btnTan.Content = secondFunction ? "tan⁻¹" : "tan";
@@ -218,18 +254,39 @@ namespace scientific_calculator_cs
             {
                 double num1 = double.Parse(previousInput);
                 double num2 = double.Parse(currentInput);
-                double result = currentOperator switch
+                double result = 0;
+
+                // Perform the appropriate calculation based on operator
+                switch (currentOperator)
                 {
-                    '+' => num1 + num2,
-                    '-' => num1 - num2,
-                    '×' => num1 * num2,
-                    '÷' => num1 / num2,
-                    '^' => Math.Pow(num1, num2),
-                    '√' => Math.Pow(num2, 1.0 / num1),
-                    '%' => num1 % num2,
-                    'E' => num1 * Math.Pow(10, num2),
-                    _ => num2
-                };
+                    case '+':
+                        result = num1 + num2;
+                        break;
+                    case '-':
+                        result = num1 - num2;
+                        break;
+                    case '×':
+                        result = num1 * num2;
+                        break;
+                    case '÷':
+                        result = num1 / num2;
+                        break;
+                    case '^':
+                        result = Math.Pow(num1, num2);
+                        break;
+                    case '√':
+                        result = Math.Pow(num2, 1.0 / num1);
+                        break;
+                    case '%':
+                        result = num1 % num2;
+                        break;
+                    case 'E':
+                        result = num1 * Math.Pow(10, num2);
+                        break;
+                    default:
+                        result = num2;
+                        break;
+                }
 
                 currentInput = result.ToString();
                 previousInput = "";
@@ -243,7 +300,7 @@ namespace scientific_calculator_cs
             }
         }
 
-        // Calculate factorial
+        // Calculate factorial (iterative implementation)
         private double Factorial(int n)
         {
             if (n < 0) return double.NaN;
@@ -266,6 +323,7 @@ namespace scientific_calculator_cs
 
         #region Window Control Methods
 
+        // Handle window dragging
         private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ChangedButton == MouseButton.Left)
@@ -274,16 +332,19 @@ namespace scientific_calculator_cs
             }
         }
 
+        // Minimize window
         private void MinimizeButton_Click(object sender, RoutedEventArgs e)
         {
             WindowState = WindowState.Minimized;
         }
 
+        // Toggle maximize/restore
         private void MaximizeButton_Click(object sender, RoutedEventArgs e)
         {
             WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
         }
 
+        // Close application
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
             Close();
