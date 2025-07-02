@@ -21,13 +21,13 @@ This project serves as a comprehensive implementation of a scientific calculator
 **Laboratory**: Visual Studio 2022
 
 ## Installation Instructions
-1. Clone the repository: `git clone [Repo Link]`
+1. Clone the repository: `git clone https://github.com/Naoyuki-Christopher-H/scientific-calculator-cs.git`
 2. Open the solution in Visual Studio 2019 or later
 3. Build the solution (Ctrl+Shift+B)
 4. Run the application (F5)
 
-**GitHub Username**: [YourUsername]  
-**GitHub Repo**: [Repo Link]
+**GitHub Username**: Naoyuki-Christopher-H
+**GitHub Repo**: https://github.com/Naoyuki-Christopher-H/scientific-calculator-cs.git
 
 ## Features Implemented
 - Developed a complete scientific calculator UI using WPF with proper styling and theming
