@@ -54,7 +54,7 @@ Built this project to demonstrate:
 ## License
 **License Name**: MIT License  
 **Role of this license**: Permits free use, modification, and distribution with only requirement being preservation of copyright and license notices.  
-**Full license text**: [LICENSE.md](LICENSE.md)
+**Full license text**: [LICENSE](LICENSE)
 
 ## References
 1. Stack Overflow. Various authors. Scientific Calculator implementations. Available at: [https://stackoverflow.com](https://stackoverflow.com) (Accessed: 2025-07-01)
